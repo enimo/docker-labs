@@ -1,7 +1,7 @@
 # Logs
 # *
 
-
+./umami/umami-db-data
 logs
 *.log
 npm-debug.log*
