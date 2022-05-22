@@ -1,0 +1,134 @@
+version: "3.4"
+services:
+  nastools:
+    image: jxxghp/nas-tools:latest
+    container_name: nastools
+    hostname: nastools
+    ports:
+      - 9000:3000        # 默认的webui控制端口
+    volumes:
+      - /volume2/docker/nastools/config:/config   # 冒号左边请修改为你想保存配置的路径
+      - /volume2/download/media:/mnt/media # 映射数据目录
+      # - /volume2/download/media/movie:/mnt/media/movie # 映射数据目录
+      # - /volume2/download/media/tv:/mnt/media/tv # 映射数据目录
+      # - /volume2/download/media/unknow:/mnt/media/unknow # 映射数据目录
+      #- /你的媒体目录:/你想设置的容器内能见到的目录   # 媒体目录，多个目录需要分别映射进来
+    environment:
+      - PUID=1024
+      - PGID=100
+      - TZ=Asia/Shanghai
+      - UMASK=022 # 掩码权限，默认000，可以考虑设置为022
+      - NASTOOL_AUTO_UPDATE=true  # 如需在启动容器时自动升级程程序请设置为true
+      - REPO_URL=https://ghproxy.com/https://github.com/jxxghp/nas-tools.git  # 访问github困难的用户，可以取消本行注释，用以加速访问github
+    depends_on:
+      - jellyfin
+      - clash
+      - jackett
+    restart: always 
+
+
+  clash:
+    # ghcr.io/dreamacro/clash
+    # ghcr.io/dreamacro/clash-premium
+    # dreamacro/clash
+    # dreamacro/clash-premium
+    image: dreamacro/clash
+    container_name: clash
+    volumes:
+      - /volume2/docker/clash/config.yaml:/root/.config/clash/config.yaml
+      # - ./ui:/ui # dashboard volume
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+      # - "8080:8080" # external controller (Restful API)
+    # # TUN
+    # cap_add:
+    #   - NET_ADMIN
+    # devices:
+    #   - /dev/net/tun
+    restart: unless-stopped
+    network_mode: "bridge" # or "host" on Linux
+
+
+  qbittorrent:
+    # image: 80x86/qbittorrent:4.4.2-35-minimal-amd64-full
+    # 上面版本默认开启了https，使用起来很麻烦，可忽略
+    image: 80x86/qbittorrent:4.2.1-amd64
+    container_name: qbittorrent
+    volumes:
+      - /volume2/docker/qb/config:/config
+      - /volume2/docker/qb/data:/data
+      - /volume2/download/media:/downloads # 映射数据目录
+    ports:
+      - "8089:8080"
+      - "8999:8999"
+      # - "8080:8080" # external controller (Restful API)
+    environment:
+      - PUID=1024
+      - PGID=100
+      - WEB_PORT=8080
+      - BT_PORT=8999
+      - TZ=Asia/Shanghai
+    restart: always
+    network_mode: "bridge" # or "host" on Linux
+
+
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin
+    ports:
+      - 8097:8096 
+    devices:
+      - /dev/dri:/dev/dri    
+    volumes:
+      - /volume2/docker/jellyfin:/config   # 冒号左边请修改为你想保存配置的路径
+      - /volume2/download/media:/media # 映射数据目录
+      - /volume2/music:/music # 映射根目录的music
+      - /volume2/movie:/movie # 映射根目录的movie
+    environment:
+      - PUID=1024
+      - PGID=100
+      - TZ=Asia/Shanghai
+    # restart: always 
+    restart: unless-stopped
+
+
+  jackett:
+    image: linuxserver/jackett:latest
+    container_name: jackett
+    hostname: jackett
+    ports:
+      - 9117:9117 
+    volumes:
+      - /volume2/docker/jackett:/config   # 冒号左边请修改为你想保存配置的路径
+      - /volume2/download/jackett:/downloads # Path to torrent blackhole.
+    environment:
+      - PUID=1024
+      - PGID=100
+      - TZ=Asia/Shanghai
+      - AUTO_UPDATE=true #optional
+      # - RUN_OPTS=<run options here> #optional
+    # restart: always 
+    # depends_on:
+    #   - flaresolverr
+    restart: unless-stopped
+
+
+  # flaresolverr:
+  #   # DockerHub mirror flaresolverr/flaresolverr:latest
+  #   # image: ghcr.io/flaresolverr/flaresolverr:latest
+  #   image: flaresolverr/flaresolverr:latest
+  #   container_name: flaresolverr
+  #   environment:
+  #     - LOG_LEVEL=${LOG_LEVEL:-debug}
+  #     - LOG_HTML=${LOG_HTML:-false}
+  #     - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+  #     - BROWSER_TIMEOUT=80000
+  #     - TZ=Asia/Shanghai
+  #     - TEST_URL=https://www.baidu.com
+  #   ports:
+  #     - "${PORT:-8191}:8191"
+  #   restart: unless-stopped
+
+
