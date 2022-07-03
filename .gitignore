@@ -3,6 +3,9 @@
 
 umami/umami-db-data/
 strapi/*.zip
+# docker-appsmith/stacks/data/*
+# stacks/
+
 logs
 *.log
 npm-debug.log*
